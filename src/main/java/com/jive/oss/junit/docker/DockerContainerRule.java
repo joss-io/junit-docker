@@ -1,6 +1,7 @@
 package com.jive.oss.junit.docker;
 
 import java.io.IOException;
+import java.net.InetSocketAddress;
 import java.nio.file.Paths;
 import java.util.List;
 import java.util.Set;
@@ -12,6 +13,7 @@ import org.junit.runners.model.Statement;
 
 import com.google.common.base.Joiner;
 import com.google.common.net.HostAndPort;
+import com.google.common.net.InetAddresses;
 import com.spotify.docker.client.DefaultDockerClient;
 import com.spotify.docker.client.DockerCertificates;
 import com.spotify.docker.client.DockerClient.ExecParameter;
@@ -186,9 +188,10 @@ public class DockerContainerRule extends ExternalResource
    * 
    */
 
-  public HostAndPort target(final String port)
+  public InetSocketAddress target(final String port)
   {
-    return HostAndPort.fromParts(this.docker.getHost(), Integer.parseInt(this.info.networkSettings().ports().get(port).get(0).hostPort()));
+    int pnum = Integer.parseInt(this.info.networkSettings().ports().get(port).get(0).hostPort());
+    return new InetSocketAddress(InetAddresses.forString(this.docker.getHost()), pnum);
   }
 
   /**

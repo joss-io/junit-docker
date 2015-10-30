@@ -54,5 +54,16 @@
 
 	</build>
 
+	<scm>
+		<developerConnection>scm:git:ssh://git@github.com/zourzouvillys/junit-docker.git</developerConnection>
+	</scm>
+
+	<distributionManagement>
+		<repository>
+			<id>artifactory</id>
+			<url>https://getjive.artifactoryonline.com/getjive/libs-snapshot-local</url>
+		</repository>
+	</distributionManagement>
+
 
 </project>
