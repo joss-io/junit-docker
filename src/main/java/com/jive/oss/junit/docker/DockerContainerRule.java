@@ -49,11 +49,11 @@ public class DockerContainerRule extends ExternalResource
       {
         return true;
       }
-      else if (System.getProperties().containsKey("judocker.certpath"))
+      else if (System.getProperties().containsKey("docker.certpath"))
       {
         return true;
       }
-      log.info("No DOCKER_CERT_PATH env or -Djudocker.certpath, skipping docker tests.");
+      log.info("No DOCKER_CERT_PATH env or -Ddocker.certpath, skipping docker tests.");
       return false;
     }
 
@@ -109,17 +109,17 @@ public class DockerContainerRule extends ExternalResource
           .dockerCertificates(DockerCertificates.builder().dockerCertPath(Paths.get(System.getenv("DOCKER_CERT_PATH"))).build())
           .build();
     }
-    else if (System.getProperties().containsKey("judocker.certpath"))
+    else if (System.getProperties().containsKey("docker.certpath"))
     {
 
       this.docker = DefaultDockerClient.builder()
-          .uri(System.getProperty("judocker.host").replaceAll("^tcp", "https"))
-          .dockerCertificates(DockerCertificates.builder().dockerCertPath(Paths.get(System.getProperty("judock.certpath"))).build())
+          .uri(System.getProperty("docker.host").replaceAll("^tcp", "https"))
+          .dockerCertificates(DockerCertificates.builder().dockerCertPath(Paths.get(System.getProperty("docker.certpath"))).build())
           .build();
     }
     else
     {
-      throw new RuntimeException(String.format("Can't find junit docker configuration properties.  Set DOCKER_* envs, or -Djudocker.certpath and -Djudocker.host"));
+      throw new RuntimeException(String.format("Can't find junit docker configuration properties.  Set DOCKER_* envs, or -Ddocker.certpath and -Ddocker.host"));
     }
 
     this.docker.ping();
@@ -146,6 +146,7 @@ public class DockerContainerRule extends ExternalResource
 
     while (tries++ < 600)
     {
+
       this.info = this.docker.inspectContainer(this.container.id());
 
       if (!this.info.state().running())

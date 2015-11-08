@@ -15,7 +15,7 @@ Makes it easy to use docker to run some services for testing purposes.
 
 ## Usage
 
-Uses DOCKER_CERTPATH and DOCKER_HOST environment variables or -Djudocker.certpath and -Djudocker.host.
+Uses DOCKER_CERTPATH and DOCKER_HOST environment variables or -Ddocker.certpath and -Ddocker.host.
 
 To use, create a public variable annotated with @Rule, defining the container you want set up.  For example, to use an image named 
 *gcr.io/something:1.2.* and expose the port *8080/tcp* to be accessible to the runtime:
