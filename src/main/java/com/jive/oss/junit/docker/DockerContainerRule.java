@@ -2,6 +2,7 @@ package com.jive.oss.junit.docker;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
 import java.util.Set;
@@ -12,11 +13,11 @@ import org.junit.runner.Description;
 import org.junit.runners.model.Statement;
 
 import com.google.common.base.Joiner;
-import com.google.common.net.HostAndPort;
+import com.google.common.base.Preconditions;
 import com.google.common.net.InetAddresses;
 import com.spotify.docker.client.DefaultDockerClient;
 import com.spotify.docker.client.DockerCertificates;
-import com.spotify.docker.client.DockerClient.ExecParameter;
+import com.spotify.docker.client.DockerClient.ExecCreateParam;
 import com.spotify.docker.client.DockerException;
 import com.spotify.docker.client.LogStream;
 import com.spotify.docker.client.messages.ContainerConfig;
@@ -40,6 +41,7 @@ import lombok.extern.slf4j.Slf4j;
 public class DockerContainerRule extends ExternalResource
 {
 
+
   public static final class Available implements Predicate<Object>
   {
 
@@ -62,10 +64,11 @@ public class DockerContainerRule extends ExternalResource
   private final String image;
   private DefaultDockerClient docker;
   private ContainerCreation container;
+  private final Set<String> envs = Sets.newHashSet();
   private final Set<String> expose = Sets.newHashSet();
   private final List<String> binds = Lists.newLinkedList();
   private ContainerInfo info;
-  private Boolean privileged  =false;
+  private Boolean privileged = false;
 
   public DockerContainerRule(final String image)
   {
@@ -78,12 +81,18 @@ public class DockerContainerRule extends ExternalResource
     return this;
   }
   
+  public DockerContainerRule env(final String key, final String value)
+  {
+    this.envs.add(String.format("%s=%s", key, value));
+    return this;
+  }
+
   public DockerContainerRule bind(final String volume)
   {
     this.binds.add(volume);
     return this;
   }
-  
+
   public DockerContainerRule privileged(final boolean privileged)
   {
     this.privileged = privileged;
@@ -106,15 +115,14 @@ public class DockerContainerRule extends ExternalResource
     {
       this.docker = DefaultDockerClient.builder()
           .uri(System.getenv("DOCKER_HOST").replaceAll("^tcp", "https"))
-          .dockerCertificates(DockerCertificates.builder().dockerCertPath(Paths.get(System.getenv("DOCKER_CERT_PATH"))).build())
+          .dockerCertificates(DockerCertificates.builder().dockerCertPath(Paths.get(System.getenv("DOCKER_CERT_PATH"))).build().orNull())
           .build();
     }
     else if (System.getProperties().containsKey("docker.certpath"))
     {
-
       this.docker = DefaultDockerClient.builder()
           .uri(System.getProperty("docker.host").replaceAll("^tcp", "https"))
-          .dockerCertificates(DockerCertificates.builder().dockerCertPath(Paths.get(System.getProperty("docker.certpath"))).build())
+          .dockerCertificates(DockerCertificates.builder().dockerCertPath(Paths.get(System.getProperty("docker.certpath"))).build().orNull())
           .build();
     }
     else
@@ -134,6 +142,7 @@ public class DockerContainerRule extends ExternalResource
         .image(this.image)
         .exposedPorts(this.expose)
         .hostConfig(hostConfig)
+        .env(envs.toArray(new String[0]))
         .build();
 
     this.container = this.docker.createContainer(containerConfig);
@@ -206,12 +215,14 @@ public class DockerContainerRule extends ExternalResource
     try
     {
 
-      final String eid = this.docker.execCreate(this.container.id(), cmds, ExecParameter.STDERR, ExecParameter.STDOUT);
+      final String eid = this.docker.execCreate(this.container.id(), cmds, ExecCreateParam.attachStderr(), ExecCreateParam.attachStdout());
+      
       final LogStream strm = this.docker.execStart(eid);
 
       strm.attach(new WrappedOutputStream(System.out), new WrappedOutputStream(System.out));
 
       final String out = strm.readFully();
+      
       final ExecState exit = this.docker.execInspect(eid);
 
       if (exit.exitCode() != 0)
@@ -222,7 +233,7 @@ public class DockerContainerRule extends ExternalResource
       return out;
 
     }
-    catch (final DockerException  e)
+    catch (final DockerException e)
     {
       throw new RuntimeException(e);
     }
